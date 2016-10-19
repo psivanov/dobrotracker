@@ -1,0 +1,17 @@
+.campaignItem {
+	width: 100%;
+	background-color: lightyellow;
+	border: 1px solid black;
+	margin-bottom: 3px;
+}
+.campaignItem-title {
+	font-size: 18px;
+	font-weight: bold;
+	text-align: center;
+}
+.campaignItem-description {
+	display:none;
+}
+.campaignItem:hover > .campaignItem-description, .campaignItem-selected > .campaignItem-description {
+	display:block;
+}

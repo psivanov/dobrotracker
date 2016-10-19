@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>DobroTracker</title>
+	
+	<!-- Firebase -->
+	<script src="https://www.gstatic.com/firebasejs/3.5.0/firebase.js"></script>
+	<script>
+	  // Initialize Firebase
+	  var config = {
+		apiKey: "AIzaSyBMQKZlYbJh9d0a9Bd6IyLNr3nLOfmMNzo",
+		authDomain: "dobrotracker.firebaseapp.com",
+		databaseURL: "https://dobrotracker.firebaseio.com",
+		storageBucket: "dobrotracker.appspot.com",
+		messagingSenderId: "242190719916"
+	  };
+	  firebase.initializeApp(config);
+	</script>	
+	
+    <!-- React -->
+    <script src="https://fb.me/react-15.3.0.min.js"></script>
+    <script src="https://fb.me/react-dom-15.3.0.min.js"></script>
+    <!-- ReactFire -->
+    <script src="https://cdn.firebase.com/libs/reactfire/1.0.0/reactfire.min.js"></script>
+	<!-- Babel -->
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+	
+    <!-- JS -->
+    <script type="text/babel" src="js/header.js"></script>	
+    <script type="text/babel" src="js/main.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/header.css">
+	<link rel="stylesheet" href="css/main.css">	
+  </head>
+  <body>
+	<div id="header"></div>
+    <div id="main"></div>
+  </body>
+</html>
