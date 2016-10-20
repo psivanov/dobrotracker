@@ -3,14 +3,29 @@
 }
 .campaignItem {
 	width: 100%;
-	background-color: lightyellow;
 	border: 1px solid black;
 	margin-bottom: 3px;
+	padding: 2px;
 }
-.campaignItem-title {
+.campaignItem-met {
+	background-color: lightgreen;
+}
+.campaignItem-unmet {
+	background-color: lightyellow;
+}
+.campaignItem-header {
+	display: flex;
 	font-size: 18px;
 	font-weight: bold;
-	text-align: center;
+	width: 100%;
+}
+.campaignItem-title {
+	flex: auto;
+	text-align: left;
+}
+.campaignItem-amount {
+	flex: auto;
+	text-align: right;
 }
 .campaignItem-description {
 	display:none;

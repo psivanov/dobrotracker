@@ -14,10 +14,6 @@ var Header = React.createClass({
 	},	
 	
 	componentWillReceiveProps: function(nextProps) {
-		if(nextProps.user)
-			console.log(nextProps.user);
-		else
-			console.log('loged out');
 	},	
 
 	render: function() {
