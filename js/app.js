@@ -23,12 +23,13 @@ var CampaignList = React.createClass({
 	  }
 	});
 
-var Main = React.createClass({
+var App = React.createClass({
   mixins: [ReactFireMixin],
 
   getInitialState: function() {
     return {
       items: [],
+	  user: null,
       text: ''
     };
   },
@@ -36,6 +37,10 @@ var Main = React.createClass({
   componentWillMount: function() {
     var firebaseRef = firebase.database().ref('campaigns');
     this.bindAsArray(firebaseRef, 'campaigns');
+	
+	firebase.auth().onAuthStateChanged((user) => {
+	  this.setState({user});
+	});	
   },
 
   onChange: function(e) {
@@ -60,15 +65,18 @@ var Main = React.createClass({
 
   render: function() {
     return (
-      <div>
-        <CampaignList items={ this.state.campaigns } onSelect={ this.handleSelectCampaign }/>
-        <form onSubmit={ this.handleSubmit }>
-          <input onChange={ this.onChange } value={ this.state.text } />
-          <button>{ 'Add #' + (this.state.items.length + 1) }</button>
-        </form>
-      </div>
+		<div>
+			<Header user={this.state.user}/>
+			<div className='main'>
+				<CampaignList items={ this.state.campaigns } onSelect={ this.handleSelectCampaign }/>
+				<form onSubmit={ this.handleSubmit }>
+				<input onChange={ this.onChange } value={ this.state.text } />
+				<button>{ 'Add #' + (this.state.items.length + 1) }</button>
+				</form>
+			</div>
+		</div>
     );
   }
 });
 
-ReactDOM.render(<Main />, document.getElementById('main'));
+ReactDOM.render(<App />, document.getElementById('app'));
