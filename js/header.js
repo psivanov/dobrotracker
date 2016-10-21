@@ -19,21 +19,16 @@ var Header = React.createClass({
 	render: function() {
 		var rootClass = 'header';
 		var user = this.props.user;
-		return <div>
-			<h2 style={{
-				color: 'red'
-			}}>Quick Prototype (don't use yet)</h2>
-			<div className={rootClass}>
-				<div className={rootClass+'-left'}>
-					ДоброТракер
-				</div>
-				<div className={rootClass+'-right'}>
-					{user
-						? <div><span style={{margin: '8px'}}>{user.displayName ? user.displayName : user.email}</span><button onClick={this.logout}>{'Logout'}</button></div>
-						: <button onClick={this.login}>{'Login'}</button>
-					}						
-				</div>			
+		return <div className={rootClass}>
+			<div className={rootClass+'-left'}>
+				ДоброТракер
 			</div>
+			<div className={rootClass+'-right'}>
+				{user
+					? <div><span style={{margin: '8px'}}>{user.displayName ? user.displayName : user.email}</span><button onClick={this.logout}>{'Logout'}</button></div>
+					: <button onClick={this.login}>{'Login'}</button>
+				}						
+			</div>			
 		</div>;
 	}
 });

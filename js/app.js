@@ -11,15 +11,17 @@ var CampaignList = React.createClass({
 			var rootClass = 'campaignItem';
 			return (
 				<div 
-					className = {rootClass + ' ' + rootClass + '-' + (item.amount < item.targetAmount ? 'unmet' : 'met')}
+					className = {`${rootClass} 
+						${rootClass}-${(item.amount < item.targetAmount ? 'unmet' : 'met')}
+						${this.props.selected === item ? rootClass+'-selected' : ''}`}
 					key = { index }
 					onClick = { () => { this.props.onSelect(item) } }  
 				>
-					<div className={rootClass + '-header'}>
-						<div className={rootClass+'-title'}>{ item.title } </div>
-						<div className={rootClass+'-amount'}>{ formatCurrency(item.amount, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
+					<div className={`${rootClass}-header`}>
+						<div className={`${rootClass}-title`}>{ item.title } </div>
+						<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
 					</div>
-					<pre className={rootClass+'-description'}>{ item.description }</pre>
+					<div className={`${rootClass}-description`}><pre>{ item.description }</pre></div>
 				</div>
 			);
 		};
@@ -36,15 +38,17 @@ var InitiativeList = React.createClass({
 			var rootClass = 'campaignItem';
 			return (
 				<div 
-					className = {rootClass + ' ' + rootClass + '-' + (item.amount.converted < item.targetAmount ? 'unmet' : 'met')}
+					className = {`${rootClass} 
+						${rootClass}-${(item.amount.converted < item.targetAmount ? 'unmet' : 'met')}
+						${this.props.selected === item ? rootClass+'-selected' : ''}`}
 					key = { index }
 					onClick = { () => { this.props.onSelect(item) } }  
 				>
-					<div className={rootClass + '-header'}>
-						<div className={rootClass+'-title'}>{ item.title } </div>
-						<div className={rootClass+'-amount'}>{ formatCurrency(item.amount.converted, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
+					<div className={`${rootClass}-header`}>
+						<div className={`${rootClass}-title`}>{ item.title } </div>
+						<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount.converted, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
 					</div>
-					<pre className={rootClass+'-description'}>{ item.description }</pre>
+					<pre className={`${rootClass}-description`}>{ item.description }</pre>
 				</div>
 			);
 		};
@@ -60,11 +64,12 @@ var App = React.createClass({
 
 	getInitialState: function() {
 		return {
-		  campaigns: [],
-		  initiatives: null,
-		  selectedCampaign: null,
-		  text: '',
-		  user: null
+			campaigns: [],
+			initiatives: null,
+			selectedCampaign: null,
+			selectedInitiative: null,
+			text: '',
+			user: null
 		};
 	},
 
@@ -77,21 +82,32 @@ var App = React.createClass({
 		});	
 	},
 
+	getInitiativeAmount: function(currency) {
+		var dict = this.state.selectedInitiative.amount[currency];
+		return (dict && dict[this.state.user.uid]) || 0;
+	},
+	
 	onChange: function(e) {
 		this.setState({text: e.target.value});
 	},
 
 	handleSelectCampaign: function(campaign) {
-		if((this.state.campaign && this.state.campaign['.key']) !== (campaign && campaign['.key'])) {				
-			this.setState({selectedCampaign: campaign});	
+		if((this.state.selectedCampaign && this.state.selectedCampaign['.key']) !== (campaign && campaign['.key'])) {				
+			this.setState({
+				selectedCampaign: campaign,
+				selectedInitiative: null
+			});	
 			
-			var firInitiativesRef = firebase.database().ref('initiatives/simeonov');
+			var firInitiativesRef = firebase.database().ref(`initiatives/${campaign['.key']}`);
 			if (this.state.initiatives)
 				this.unbind('initiatives');
 			this.bindAsArray(firInitiativesRef, 'initiatives');
 		}	
 	},
 	handleSelectInitiative: function(initiative) {
+		if((this.state.selectedInitiative && this.state.selectedInitiative['.key']) !== (initiative && initiative['.key'])) {				
+			this.setState({selectedInitiative: initiative});
+		}	
 	},
 
   render: function() {
@@ -100,9 +116,24 @@ var App = React.createClass({
 			<Header user={this.state.user}/>
 			{this.state.user &&
 				<div className='main'>
-					{<CampaignList items={ this.state.campaigns } onSelect={ this.handleSelectCampaign }/>}
-					{this.state.selectedCampaign && <InitiativeList items={ this.state.initiatives } onSelect={ this.handleSelectInitiative }/>}
-				</div>
+					<div className='top'>
+						<div className='left'>{<CampaignList items={ this.state.campaigns } selected={this.state.selectedCampaign} onSelect={ this.handleSelectCampaign }/>}</div>
+						<div className='center'/>
+						<div className='right'>{this.state.selectedCampaign && <InitiativeList items={ this.state.initiatives } selected={this.state.selectedInitiative} onSelect={ this.handleSelectInitiative }/>}</div>
+					</div>
+					<div className='bottom'>
+						<hr className='divider'/>
+						{this.state.selectedInitiative && 
+							<div className='contribution'>
+								<b>Моя принос:</b>
+								<div>BGN: <input value={this.getInitiativeAmount('BGN')}/></div>
+								<div>EUR: <input value={this.getInitiativeAmount('EUR')}/></div>
+								<div>USD: <input value={this.getInitiativeAmount('USD')}/></div>
+								<button>Запази</button>
+							</div>
+						}
+					</div>	
+				</div>				
 			}
 		</div>
     );

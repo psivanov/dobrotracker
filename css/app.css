@@ -1,8 +1,36 @@
+body {
+	font-family: Roboto;
+}
 .main {
 	margin: 8px;
 }
+.top {
+	display: flex;
+	flex-flow: row wrap;
+	min-height: 300px;
+}
+.left {
+	flex: 1 1 auto;
+}
+.center {
+	flex: 0 0 10%;
+}
+.right {
+	flex: 1 1 auto;
+}
+.bottom	 {
+}
+.contribution {
+	border: 1px solid black;
+	display: flex;
+	justify-content: space-between;
+	padding: 2px;
+}
+.divider {
+	margin-top: 40px;
+	margin-bottom: 40px;
+}
 .campaignItem {
-	width: 100%;
 	border: 1px solid black;
 	margin-bottom: 3px;
 	padding: 2px;
@@ -29,6 +57,13 @@
 }
 .campaignItem-description {
 	display:none;
+	min-height:50px;
+}
+.campaignItem:hover {
+	border: 3px solid #e97700;
+}
+.campaignItem-selected {
+	border: 3px solid #059dc1;
 }
 .campaignItem:hover > .campaignItem-description, .campaignItem-selected > .campaignItem-description {
 	display:block;
