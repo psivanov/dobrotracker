@@ -36,7 +36,7 @@ body {
 	padding: 2px;
 }
 .campaignItem-met {
-	background-color: lightgreen;
+	background-color: palegreen;
 }
 .campaignItem-unmet {
 	background-color: lightyellow;

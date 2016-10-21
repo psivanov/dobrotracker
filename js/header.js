@@ -26,7 +26,7 @@ var Header = React.createClass({
 			<div className={rootClass+'-right'}>
 				{user
 					? <div><span style={{margin: '8px'}}>{user.displayName ? user.displayName : user.email}</span><button onClick={this.logout}>{'Logout'}</button></div>
-					: <button onClick={this.login}>{'Login'}</button>
+					: <div><button style={{marginRight: '8px'}}onClick={this.login}>{'Login'}</button><button onClick={this.anonymousLogin}>{'Anonymous Login'}</button></div>
 				}						
 			</div>			
 		</div>;
