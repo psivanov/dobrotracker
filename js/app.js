@@ -6,22 +6,29 @@ function formatCurrency(amount, currency) {
 }
 
 var CampaignList = React.createClass({
+	deleteCampaign: function(key) {
+		if(confirm('Сигурен ли си че искаш да изтриеш тази кампания?')) {
+			firebase.database().ref(`campaigns/${key}`).remove();
+		}
+	},
 	render: function() {
 		var createItem = (item, index) => {
 			var rootClass = 'campaignItem';
 			return (
-				<div 
-					className = {`${rootClass} 
-						${rootClass}-${(item.amount < item.targetAmount ? 'unmet' : 'met')}
-						${this.props.selected === item ? rootClass+'-selected' : ''}`}
-					key = { index }
-					onClick = { () => { this.props.onSelect(item['.key']) } }  
-				>
-					<div className={`${rootClass}-header`}>
-						<div className={`${rootClass}-title`}>{ item.title } </div>
-						<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
+				<div className={rootClass} key = { index }>
+					<div 
+						className = {`${rootClass}-main 
+							${rootClass}-${(item.amount < item.targetAmount ? 'unmet' : 'met')}
+							${this.props.selected === item['.key'] ? rootClass+'-selected' : ''}`}
+						onClick = { () => { this.props.onSelect(item['.key']) } }  
+					>
+						<div className={`${rootClass}-header`}>
+							<div className={`${rootClass}-title`}>{ item.title } </div>
+							<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
+						</div>
+						<div className={`${rootClass}-description`}><pre>{ item.description }</pre></div>
 					</div>
-					<div className={`${rootClass}-description`}><pre>{ item.description }</pre></div>
+					{ item.owners[this.props.user.uid] && item.amount === 0 && <div className={`${rootClass}-delete`} onClick={() => this.deleteCampaign(item['.key'])}/> }
 				</div>
 			);
 		};
@@ -32,22 +39,30 @@ var CampaignList = React.createClass({
 });
 
 var InitiativeList = React.createClass({
+	deleteInitiative: function(key) {
+		if(confirm('Сигурен ли си че искаш да изтриеш тази инициатива?')) {
+			firebase.database().ref(`initiatives/${this.props.selectedCampaign}/${key}`).remove();
+		}
+	},
 	render: function() {
 		var createItem = (item, index) => {
-			var rootClass = 'campaignItem';
+			var rootClass = 'campaignItem'; //initiatives uses the campaign CSS classes, since the UI is the same
 			return (
-				<div 
-					className = {`${rootClass} 
-						${rootClass}-${(item.amount.converted < item.targetAmount ? 'unmet' : 'met')}
-						${this.props.selected === item ? rootClass+'-selected' : ''}`}
-					key = { index }
-					onClick = { () => { this.props.onSelect(item['.key']) } }  
-				>
-					<div className={`${rootClass}-header`}>
-						<div className={`${rootClass}-title`}>{ item.title } </div>
-						<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount.converted, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
+				<div className={rootClass}>
+					<div 
+						className = {`${rootClass}-main 
+							${rootClass}-${(item.amount.converted < item.targetAmount ? 'unmet' : 'met')}
+							${this.props.selected === item['.key'] ? rootClass+'-selected' : ''}`}
+						key = { index }
+						onClick = { () => { this.props.onSelect(item['.key']) } }  
+					>
+						<div className={`${rootClass}-header`}>
+							<div className={`${rootClass}-title`}>{ item.title } </div>
+							<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount.converted, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
+						</div>
+						<pre className={`${rootClass}-description`}>{ item.description }</pre>
 					</div>
-					<pre className={`${rootClass}-description`}>{ item.description }</pre>
+					{ this.props.canDelete && <div className={`${rootClass}-delete`} onClick={() => this.deleteInitiative(item['.key'])}/> }
 				</div>
 			);
 		};
@@ -86,7 +101,7 @@ var App = React.createClass({
 	},
 
 	getSelectedCampaign: function() {
-		return this.state.campaign && this.state.campaigns.find(x => x['.key'] === this.state.selectedCampaign);
+		return this.state.campaigns && this.state.campaigns.find(x => x['.key'] === this.state.selectedCampaign);
 	},	
 	getSelectedInitiative: function() {
 		return this.state.initiatives && this.state.initiatives.find(x => x['.key'] === this.state.selectedInitiative);
@@ -156,15 +171,34 @@ var App = React.createClass({
 	},
 
   render: function() {
+	var user = this.state.user;
+	var campaign = this.getSelectedCampaign();
     return (
 		<div>
-			<Header user={this.state.user}/>
-			{this.state.user &&
+			<Header user={user}/>
+			{user &&
 				<div className='main'>
 					<div className='top'>
-						<div className='left'><h2>Кампании</h2>{<CampaignList items={ this.state.campaigns } selected={this.getSelectedCampaign()} onSelect={ this.handleSelectCampaign }/>}</div>
+						<div className='left'>
+							<h2>Кампании</h2>
+							{<CampaignList 
+								items={ this.state.campaigns } 
+								onSelect={ this.handleSelectCampaign }
+								selected={this.state.selectedCampaign}
+								user={user}
+							/>}
+						</div>
 						<div className='center'><hr style={{width:'1px', height:'100%'}}/></div>
-						<div className='right'><h2>Инициативи</h2>{this.state.selectedCampaign && <InitiativeList items={ this.state.initiatives } selected={this.getSelectedInitiative()} onSelect={ this.handleSelectInitiative }/>}</div>
+						<div className='right'>
+							<h2>Инициативи</h2>
+							{campaign && <InitiativeList
+									canDelete={ campaign && campaign.owners[user.uid] && campaign.amount === 0 }
+									items={ this.state.initiatives } 
+									selected={this.state.selectedInitiative}
+									selectedCampaign={this.state.selectedCampaign}
+									onSelect={ this.handleSelectInitiative }
+							/>}
+						</div>
 					</div>
 					<div className='bottom'>
 						<hr className='divider'/>

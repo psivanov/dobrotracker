@@ -1,6 +1,15 @@
 body {
 	font-family: Roboto;
 }
+button {
+	font-family: Roboto;
+	background-color: #059dc1;
+	color: white;
+}
+button:hover {
+	background-color: #e97700;
+	color: white;
+}
 .main {
 	margin: 8px;
 }
@@ -13,7 +22,7 @@ body {
 	flex: 1 1 auto;
 }
 .center {
-	flex: 0 0 10%;
+	flex: 0 0 5%;
 }
 .right {
 	flex: 1 1 auto;
@@ -31,7 +40,11 @@ body {
 	margin-bottom: 40px;
 }
 .campaignItem {
+	display: flex;
+}
+.campaignItem-main {
 	border: 1px solid black;
+	flex: 1;
 	margin-bottom: 3px;
 	padding: 2px;
 }
@@ -55,16 +68,33 @@ body {
 	flex: auto;
 	text-align: right;
 }
+.campaignItem-delete::after {
+	content: '×';
+}
+.campaignItem-delete:hover {
+	background: #bb0000;
+}
+.campaignItem-delete {
+	background: #ee0000;
+	color: white;
+	font-size: 27px;
+	height: 27px;
+	margin-left:4px;
+	width: 27px;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
 .campaignItem-description {
 	display:none;
 	min-height:50px;
 }
-.campaignItem:hover {
+.campaignItem-main:hover {
 	border: 3px solid #e97700;
 }
 .campaignItem-selected {
 	border: 3px solid #059dc1;
 }
-.campaignItem:hover > .campaignItem-description, .campaignItem-selected > .campaignItem-description {
+.campaignItem-main:hover > .campaignItem-description, .campaignItem-selected > .campaignItem-description {
 	display:block;
 }
