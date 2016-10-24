@@ -91,10 +91,57 @@ var App = React.createClass({
 		this.bindAsArray(firCampaignsRef, 'campaigns');
 		
 		firebase.auth().onAuthStateChanged((user) => {
-		  this.setState({user});
+		  this.setState({
+			email: '',
+			password: '',
+			loginError: '',
+			user
+		  });
 		});	
 	},
 
+	//<login>
+	anonymousLogin: function() {
+		firebase.auth().signInAnonymously().catch((error) => {
+			this.setState({loginError: error.message});
+		});
+	},
+	emailLogin: function() {
+		if(this.state.email && this.state.password) {
+			firebase.auth().signInWithEmailAndPassword(this.state.email, this.state.password).catch((error) => {
+				if(error.code === 'auth/invalid-email') this.setState({loginError: 'Невалиден имейл адрес.'});
+				else if(error.code === 'auth/user-disabled') this.setState({loginError: 'Акаунта е временно деактивиран.'});
+				else if(error.code === 'auth/user-not-found') this.setState({loginError: 'Акаунта не съществува.'});
+				else if(error.code === 'auth/wrong-password') this.setState({loginError: 'Грешна парола.'});
+				else this.setState({loginError: error.message});
+			});
+		}		
+	},
+	emailRegister: function() {
+		if(this.state.email && this.state.password) {
+			firebase.auth().createUserWithEmailAndPassword(this.state.email, this.state.password).catch((error) => {
+				if(error.code === 'auth/email-already-in-use') this.setState({loginError: 'Акаунта вече съществува.'});
+				else if(error.code === 'auth/invalid-email') this.setState({loginError: 'Невалиден имейл адрес.'});
+				else if(error.code === 'auth/weak-password') this.setState({loginError: 'Слаба парола.'});
+				else this.setState({loginError: error.message});
+			});
+		}		
+	},		
+	googleLogin: function() {
+		// Instantiate the Google authentication provider
+		var provider= new firebase.auth.GoogleAuthProvider();
+		// Handle the authentication request using the Popup method
+		firebase.auth().signInWithPopup(provider).catch((error) => {
+			this.setState({loginError: error.message});
+		});						
+	},
+	logout: function() {
+		firebase.auth().signOut().catch(function(error) {
+			this.setState({loginError: error.message});
+		});	
+	},	
+	//</login>
+	
 	getInitiativeAmount: function(initiative, currency) {
 		var dict = initiative && initiative.amount[currency];
 		return (dict && dict[this.state.user.uid]) || 0;
@@ -107,6 +154,11 @@ var App = React.createClass({
 		return this.state.initiatives && this.state.initiatives.find(x => x['.key'] === this.state.selectedInitiative);
 	},
 	
+	handleChange: function(e, name) {
+		var state = {};
+		state[name] = e.target.value;
+		this.setState(state);
+	},
 	handleContributionChange: function(e, currency) {
 		var contribution = this.state.contribution;
 		contribution[currency] = e.target.value;
@@ -175,7 +227,31 @@ var App = React.createClass({
 	var campaign = this.getSelectedCampaign();
     return (
 		<div>
-			<Header user={user}/>
+			<div className='header'>
+				<div className='header-left'>
+					ДоброТракер
+				</div>
+				<div className='header-right'>
+					{user && <div>
+						<a style={{margin: '8px'}}>{user.displayName ? user.displayName : user.email}</a><button onClick={this.logout}>{'Изход'}</button>
+					</div>}						
+				</div>			
+			</div>
+			{!user &&
+				<div className='login-main'>
+					<div style={{flex:'auto'}}>
+						Имайл адрес: <br/><input value={this.state.email} onChange={(e) => this.handleChange(e, 'email')}/><br/>
+						Парола: <br/><input type='password' value={this.state.password} onChange={(e) => this.handleChange(e, 'password')}/><br/>
+						<button onClick={this.emailRegister}>{'Регистрация'}</button>
+						<button onClick={this.emailLogin}>{'Вход'}</button><br/>
+						<div style={{color: 'red'}}>{this.state.loginError}</div>
+					</div>
+					<div className='center'><hr style={{width:'1px', height:'100%'}}/></div>
+					<button onClick={this.anonymousLogin}>{'Анонимен Вход'}</button>			
+					<button onClick={this.googleLogin}>{'Вход с Google'}</button>
+					<button onClick={this.facebookLogin}>{'Вход с Facebook'}</button>							
+				</div>
+			}
 			{user &&
 				<div className='main'>
 					<div className='top'>

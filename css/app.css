@@ -10,6 +10,33 @@ button:hover {
 	background-color: #e97700;
 	color: white;
 }
+.header {
+	align-items: center;
+	background-color: #f2f2f2;
+	box-shadow: 0 2px 0 0 rgba(0,0,0,0.1);	
+	display: flex;
+	width: 100%;
+}
+.header-left {
+	flex: auto;
+	font-family: Poiret One;
+	font-size: 24px;
+	font-weight: bold;
+	margin: 8px;
+	text-align: left;
+}
+.header-right {
+	flex: auto;
+	margin: 8px;
+	text-align: right;
+}
+.login-main {
+	display: flex;
+	margin: 200px;
+}
+.login-main * {
+	margin: 4px;
+}
 .main {
 	margin: 8px;
 }
@@ -69,7 +96,7 @@ button:hover {
 	text-align: right;
 }
 .campaignItem-delete::after {
-	content: 'Ã—';
+	content: '×';
 }
 .campaignItem-delete:hover {
 	background: #bb0000;
