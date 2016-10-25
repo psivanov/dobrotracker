@@ -2,7 +2,7 @@ function convertCurrency(amount, from, to) {
 	return Currency.convert(amount, from, to);
 }
 function formatCurrency(amount, currency) {
-	return amount.toFixed(0) + ' ' + currency.toUpperCase();
+	return `${amount.toFixed(0)} ${currency.toUpperCase()}`;
 }
 
 var CampaignList = React.createClass({
@@ -176,7 +176,7 @@ var App = React.createClass({
 		this.setState({ [name]: e.target.value });
 	},
 	handleContributionChange: function(e, currency) {
-		var contribution = this.state.contribution;
+		var contribution = this.state.contribution; 
 		contribution[currency] = e.target.value;
 		this.setState({contribution});
 	},
@@ -251,9 +251,9 @@ var App = React.createClass({
 		}	
 	},
 	handleUpdateContribution: function() {
-		var bgnIncrement = this.state.contribution.BGN - this.getInitiativeAmount(this.getInitiative(), 'BGN');
-		var eurIncrement = this.state.contribution.EUR - this.getInitiativeAmount(this.getInitiative(), 'EUR');
-		var usdIncrement = this.state.contribution.USD - this.getInitiativeAmount(this.getInitiative(), 'USD');
+		var bgnIncrement = (+this.state.contribution.BGN || 0) - this.getInitiativeAmount(this.getInitiative(), 'BGN');
+		var eurIncrement = (+this.state.contribution.EUR || 0) - this.getInitiativeAmount(this.getInitiative(), 'EUR');
+		var usdIncrement = (+this.state.contribution.USD || 0) - this.getInitiativeAmount(this.getInitiative(), 'USD');
 		var converted = bgnIncrement + convertCurrency(eurIncrement, 'EUR', 'BGN') + convertCurrency(usdIncrement, 'USD', 'BGN');
 		//get user id
 		var uid = this.state.user.uid;
