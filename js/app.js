@@ -6,12 +6,6 @@ function formatCurrency(amount, currency) {
 }
 
 var CampaignList = React.createClass({
-	deleteCampaign: function(key) {
-		if(confirm('Сигурен ли си че искаш да изтриеш тази кампания?')) {
-			firebase.database().ref(`campaigns/${key}`).remove();
-			firebase.database().ref(`initiatives/${key}`).remove();
-		}
-	},
 	render: function() {
 		var createItem = (item, index) => {
 			var rootClass = 'campaignItem';
@@ -29,22 +23,17 @@ var CampaignList = React.createClass({
 						</div>
 						<div className={`${rootClass}-description`}><pre>{ item.description }</pre></div>
 					</div>
-					{ item.owners[this.props.user.uid] && item.amount === 0 && <div className={`${rootClass}-delete`} onClick={() => this.deleteCampaign(item['.key'])}/> }
+					{ item.owners[this.props.user.uid] && item.amount === 0 && <div className={`${rootClass}-delete`} onClick={() => this.props.deleteCampaign(item['.key'])}/> }
 				</div>
 			);
 		};
 		return <div>
-			{ this.props.items.map(createItem) }
+			{ this.props.items.map(createItem).reverse() }
 		</div>
 	  }
 });
 
 var InitiativeList = React.createClass({
-	deleteInitiative: function(key) {
-		if(confirm('Сигурен ли си че искаш да изтриеш тази инициатива?')) {
-			firebase.database().ref(`initiatives/${this.props.selectedCampaign}/${key}`).remove();
-		}
-	},
 	render: function() {
 		var createItem = (item, index) => {
 			var rootClass = 'campaignItem'; //initiatives uses the campaign CSS classes, since the UI is the same
@@ -63,12 +52,12 @@ var InitiativeList = React.createClass({
 						</div>
 						<pre className={`${rootClass}-description`}>{ item.description }</pre>
 					</div>
-					{ this.props.canDelete && <div className={`${rootClass}-delete`} onClick={() => this.deleteInitiative(item['.key'])}/> }
+					{ this.props.canDelete && <div className={`${rootClass}-delete`} onClick={() => this.props.deleteInitiative(item['.key'])}/> }
 				</div>
 			);
 		};
 		return <div>
-			{ this.props.items && this.props.items.map(createItem) }
+			{ this.props.items && this.props.items.map(createItem).reverse() }
 		</div>
 	  }
 });
@@ -94,7 +83,7 @@ var App = React.createClass({
 	},	
 	
 	componentWillMount: function() {
-		var firCampaignsRef = firebase.database().ref('campaigns');
+		var firCampaignsRef = firebase.database().ref('campaigns').orderByChild('date');
 		this.bindAsArray(firCampaignsRef, 'campaigns');
 		
 		firebase.auth().onAuthStateChanged((user) => {
@@ -129,7 +118,6 @@ var App = React.createClass({
       this.firebaseUi = new firebaseui.auth.AuthUI(firebase.auth());
 	},
 	displayFirebaseUiLogin: function() {
-		console.log('display firebase login');
 		!this.state.user && this.firebaseUi.start('#firebase-ui-container', this.firebaseUiConfig);	
 	},
 	anonymousLogin: function() {
@@ -152,55 +140,120 @@ var App = React.createClass({
 	},	
 	//</auth>
 	
+	deleteCampaign: function(campaign) {
+		if(confirm('Сигурен ли си че искаш да изтриеш тази кампания?')) {
+			firebase.database().ref(`campaigns/${campaign}`).remove();
+			firebase.database().ref(`initiatives/${campaign}`).remove();
+			
+			if(this.state.selectedCampaign === campaign)
+				this.syncSelection(null, null);
+		}
+	},	
+	deleteInitiative: function(initiative) {
+		if(confirm('Сигурен ли си че искаш да изтриеш тази инициатива?')) {
+			firebase.database().ref(`initiatives/${this.state.selectedCampaign}/${initiative}`).remove();
+			
+			if(this.state.selectedInitiative === initiative)
+				this.syncSelection(this.state.selectedCampaign, null);			
+		}
+	},	
+
 	getInitiativeAmount: function(initiative, currency) {
 		var dict = initiative && initiative.amount[currency];
 		return (dict && dict[this.state.user.uid]) || 0;
 	},
 
-	getSelectedCampaign: function() {
-		return this.state.campaigns && this.state.campaigns.find(x => x['.key'] === this.state.selectedCampaign);
+	getCampaign: function(campaign) {
+		if(!campaign) campaign = this.state.selectedCampaign;
+		return this.state.campaigns && this.state.campaigns.find(x => x['.key'] === campaign);
 	},	
-	getSelectedInitiative: function() {
-		return this.state.initiatives && this.state.initiatives.find(x => x['.key'] === this.state.selectedInitiative);
+	getInitiative: function(initiative) {
+		if(!initiative) initiative = this.state.selectedInitiative;
+		return this.state.initiatives && this.state.initiatives.find(x => x['.key'] === initiative);
 	},
 	
 	handleChange: function(e, name) {
-		var state = {};
-		state[name] = e.target.value;
-		this.setState(state);
+		this.setState({ [name]: e.target.value });
 	},
 	handleContributionChange: function(e, currency) {
 		var contribution = this.state.contribution;
 		contribution[currency] = e.target.value;
 		this.setState({contribution});
 	},
+	handleEdit: function() {
+		var campaign = this.state.selectedCampaign;
+		var initiative = this.state.selectedInitiative;
+		if(campaign) {
+			var refCampaign = firebase.database().ref(`campaigns/${campaign}`);
+			
+			if(!initiative) {
+				refCampaign.update({
+					description: this.state.editDescription,
+					title: this.state.editTitle
+				});
+			}
+			else {
+				var refInitiative = firebase.database().ref(`initiatives/${campaign}/${initiative}`);	
+
+				refInitiative.update({
+					description: this.state.editDescription,
+					title: this.state.editTitle
+				});
+				
+				var initiativeObj = this.getInitiative(initiative);
+				var increment = (+this.state.editTargetAmount || 0) - initiativeObj.targetAmount;
+				if (increment !== 0) {
+					refInitiative.child('targetAmount').transaction(currentData => this.firAdd(currentData, increment));
+					refCampaign.child('targetAmount').transaction(currentData => this.firAdd(currentData, increment));
+				}					
+			}
+			
+			this.syncSelection(campaign, initiative);				
+		}
+	},
+	handleNewCampaign: function() {
+		var newRef = firebase.database().ref('campaigns').push({
+			amount: 0,
+			date: (new Date).toISOString(),
+			description: '--Подробно описание на кампанията--',
+			owners: { [this.state.user.uid]: true },
+			targetAmount: 0,
+			title: '--Име на кампанията--'
+		});
+		
+		this.handleSelectCampaign(newRef.key);
+	},
+	handleNewInitiative: function(campaign) {
+		var newRef = firebase.database().ref(`initiatives/${campaign}`).push({
+			amount: { BGN:{}, EUR:{}, USD:{}, converted: 0 },
+			date: (new Date).toISOString(),
+			description: '--Подробно описание на инициативата--',
+			targetAmount: 0,
+			title: '--Име на инициативата--'
+		});
+		
+		this.handleSelectInitiative(newRef.key);	
+	},
 	
 	handleSelectCampaign: function(campaign) {
-		if(this.state.selectedCampaign !== campaign) {
-			this.setState({
-				selectedCampaign: campaign,
-				selectedInitiative: null
-			});
-			
-			if(campaign) {
-				//initiatives
-				var firInitiativesRef = firebase.database().ref(`initiatives/${campaign}`);
-				if (this.state.initiatives)
-					this.unbind('initiatives');
-				this.bindAsArray(firInitiativesRef, 'initiatives');
-			}
-		}	
+		if(campaign) {
+			//initiatives
+			var firInitiativesRef = firebase.database().ref(`initiatives/${campaign}`).orderByChild('date');
+			if (this.state.initiatives)
+				this.unbind('initiatives');
+			this.bindAsArray(firInitiativesRef, 'initiatives');			
+		}
+		this.syncSelection(campaign, null);
 	},
 	handleSelectInitiative: function(initiative) {
 		if(this.state.selectedInitiative !== initiative) {
-			this.setState({selectedInitiative: initiative});
-			this.syncContribution(this.state.initiatives.find(x => x['.key'] === initiative));
+			this.syncSelection(this.state.selectedCampaign, initiative);
 		}	
 	},
 	handleUpdateContribution: function() {
-		var bgnIncrement = this.state.contribution.BGN - this.getInitiativeAmount(this.getSelectedInitiative(), 'BGN');
-		var eurIncrement = this.state.contribution.EUR - this.getInitiativeAmount(this.getSelectedInitiative(), 'EUR');
-		var usdIncrement = this.state.contribution.USD - this.getInitiativeAmount(this.getSelectedInitiative(), 'USD');
+		var bgnIncrement = this.state.contribution.BGN - this.getInitiativeAmount(this.getInitiative(), 'BGN');
+		var eurIncrement = this.state.contribution.EUR - this.getInitiativeAmount(this.getInitiative(), 'EUR');
+		var usdIncrement = this.state.contribution.USD - this.getInitiativeAmount(this.getInitiative(), 'USD');
 		var converted = bgnIncrement + convertCurrency(eurIncrement, 'EUR', 'BGN') + convertCurrency(usdIncrement, 'USD', 'BGN');
 		//get user id
 		var uid = this.state.user.uid;
@@ -224,19 +277,46 @@ var App = React.createClass({
 			currentData = 0;
 		return currentData + increment;
 	},
-	syncContribution: function(initiativeObj) {
+	syncSelection: function(campaign, initiative) {
+		var editTitle, editDescription, editTargetAmount;
+	
+		var campaignObj = campaign && this.getCampaign(campaign);
+		if(campaignObj) {
+			editDescription = campaignObj.description;
+			editTargetAmount = campaignObj.targetAmount;
+			editTitle = campaignObj.title;	
+		}
+		else
+			campaign = null;
+
+		var initiativeObj = initiative && this.getInitiative(initiative);
+		if(initiativeObj) {
+			editDescription = initiativeObj.description;
+			editTargetAmount = initiativeObj.targetAmount;
+			editTitle = initiativeObj.title;	
+		}
+		else
+			initiative = null;
+			
 		this.setState({
 			contribution: {
 				BGN: this.getInitiativeAmount(initiativeObj, 'BGN'),
 				EUR: this.getInitiativeAmount(initiativeObj, 'EUR'),
 				USD: this.getInitiativeAmount(initiativeObj, 'USD')
-			}
+			},
+			editDescription,
+			editTargetAmount,
+			editTitle,				
+			selectedCampaign: campaign,
+			selectedInitiative: initiative
 		});
 	},
 
   render: function() {
 	var user = this.state.user;
-	var campaign = this.getSelectedCampaign();
+	var campaign = this.getCampaign();
+	var initiative = this.getInitiative();
+	var owner = campaign && this.state.user && campaign.owners[this.state.user.uid];
     return (
 		<div>
 			<div className='header'>
@@ -261,8 +341,11 @@ var App = React.createClass({
 				<div className='main'>
 					<div className='top'>
 						<div className='left'>
-							<h2>Кампании</h2>
-							{<CampaignList 
+							<h2>Кампании
+								<button style={{float:'right'}} onClick={this.handleNewCampaign}>Нова Кампания</button>
+							</h2>
+							{<CampaignList
+								deleteCampaign={this.deleteCampaign}
 								items={ this.state.campaigns } 
 								onSelect={ this.handleSelectCampaign }
 								selected={this.state.selectedCampaign}
@@ -271,9 +354,12 @@ var App = React.createClass({
 						</div>
 						<div className='center'><hr style={{width:'1px', height:'100%'}}/></div>
 						<div className='right'>
-							<h2>Инициативи</h2>
+							<h2>Инициативи 
+								{owner && <button style={{float:'right'}} onClick={() => this.handleNewInitiative(campaign['.key'])}>Нова Инициатива</button>}
+							</h2>
 							{campaign && <InitiativeList
 									canDelete={ campaign && campaign.owners[user.uid] && campaign.amount === 0 }
+									deleteInitiative={this.deleteInitiative}
 									items={ this.state.initiatives } 
 									selected={this.state.selectedInitiative}
 									selectedCampaign={this.state.selectedCampaign}
@@ -283,6 +369,24 @@ var App = React.createClass({
 					</div>
 					<div className='bottom'>
 						<hr className='divider'/>
+						{owner && 
+							<div className='edit'>
+								<b>Редактирай:</b>
+								<div style={{flex:4}}>
+									Име:<br/>
+									<textarea value={this.state.editTitle} rows='1' onChange={(e) => this.handleChange(e, 'editTitle')}/>
+								</div>
+								<div style={{flex:4}}>
+									Описание:<br/>
+									<textarea value={this.state.editDescription} rows='8' onChange={(e) => this.handleChange(e, 'editDescription')}/>
+								</div>
+								{initiative && <div style={{flex:1}}>
+									Необходима сума:<br/>
+									<textarea value={this.state.editTargetAmount} rows='1' onChange={(e) => this.handleChange(e, 'editTargetAmount')}/>
+								</div>}
+								<button style={{height: '21px'}} onClick={this.handleEdit}>Запази</button>							
+							</div>
+						}
 						{this.state.selectedInitiative && 
 							<div className='contribution'>
 								<b>Моя принос:</b>

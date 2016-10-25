@@ -56,7 +56,20 @@ button:hover {
 .right {
 	flex: 1 1 auto;
 }
-.bottom	 {
+.edit {
+	border: 1px solid black;
+	display: flex;
+	justify-content: space-between;	
+	margin-bottom: 20px;
+	padding: 2px
+}
+.edit > div {
+	margin: 0 20px;
+}
+.edit textarea {
+	box-sizing: border-box;
+	resize: none;
+	width: 100%;
 }
 .contribution {
 	border: 1px solid black;
