@@ -31,11 +31,13 @@ button:hover {
 	text-align: right;
 }
 .login-main {
-	display: flex;
 	margin: 200px;
 }
-.login-main * {
-	margin: 4px;
+.login-anonymous {
+	height: 40px;
+	margin: 0 auto;
+	max-width: 220px;
+	padding: 0 24px 48px 24px;
 }
 .main {
 	margin: 8px;
@@ -48,7 +50,7 @@ button:hover {
 .left {
 	flex: 1 1 auto;
 }
-.center {
+.center {	
 	flex: 0 0 5%;
 }
 .right {
@@ -96,7 +98,7 @@ button:hover {
 	text-align: right;
 }
 .campaignItem-delete::after {
-	content: '×';
+	content: 'Ã—';
 }
 .campaignItem-delete:hover {
 	background: #bb0000;

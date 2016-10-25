@@ -9,6 +9,7 @@ var CampaignList = React.createClass({
 	deleteCampaign: function(key) {
 		if(confirm('Сигурен ли си че искаш да изтриеш тази кампания?')) {
 			firebase.database().ref(`campaigns/${key}`).remove();
+			firebase.database().ref(`initiatives/${key}`).remove();
 		}
 	},
 	render: function() {
@@ -85,7 +86,13 @@ var App = React.createClass({
 			user: null
 		};
 	},
-
+	componentDidMount: function() {
+		this.displayFirebaseUiLogin();
+	},
+	componentDidUpdate: function() {
+		this.state.shouldDisplayFirebaseUiLogin && this.displayFirebaseUiLogin();
+	},	
+	
 	componentWillMount: function() {
 		var firCampaignsRef = firebase.database().ref('campaigns');
 		this.bindAsArray(firCampaignsRef, 'campaigns');
@@ -97,50 +104,53 @@ var App = React.createClass({
 			loginError: '',
 			user
 		  });
-		});	
+		});
+
+		this.initFirebaseUiLogin();
 	},
 
-	//<login>
+	//<auth>
+	firebaseUi: null,
+	firebaseUiConfig: null,
+	initFirebaseUiLogin: function() {
+      // FirebaseUI config.
+      this.firebaseUiConfig = {
+		signInFlow: 'popup',
+        signInOptions: [
+          firebase.auth.EmailAuthProvider.PROVIDER_ID,
+          firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+          firebase.auth.FacebookAuthProvider.PROVIDER_ID,
+          //firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+          //firebase.auth.GithubAuthProvider.PROVIDER_ID
+        ]
+      };
+
+      // Initialize the FirebaseUI Widget using Firebase.
+      this.firebaseUi = new firebaseui.auth.AuthUI(firebase.auth());
+	},
+	displayFirebaseUiLogin: function() {
+		console.log('display firebase login');
+		!this.state.user && this.firebaseUi.start('#firebase-ui-container', this.firebaseUiConfig);	
+	},
 	anonymousLogin: function() {
 		firebase.auth().signInAnonymously().catch((error) => {
 			this.setState({loginError: error.message});
 		});
-	},
-	emailLogin: function() {
-		if(this.state.email && this.state.password) {
-			firebase.auth().signInWithEmailAndPassword(this.state.email, this.state.password).catch((error) => {
-				if(error.code === 'auth/invalid-email') this.setState({loginError: 'Невалиден имейл адрес.'});
-				else if(error.code === 'auth/user-disabled') this.setState({loginError: 'Акаунта е временно деактивиран.'});
-				else if(error.code === 'auth/user-not-found') this.setState({loginError: 'Акаунта не съществува.'});
-				else if(error.code === 'auth/wrong-password') this.setState({loginError: 'Грешна парола.'});
-				else this.setState({loginError: error.message});
-			});
-		}		
-	},
-	emailRegister: function() {
-		if(this.state.email && this.state.password) {
-			firebase.auth().createUserWithEmailAndPassword(this.state.email, this.state.password).catch((error) => {
-				if(error.code === 'auth/email-already-in-use') this.setState({loginError: 'Акаунта вече съществува.'});
-				else if(error.code === 'auth/invalid-email') this.setState({loginError: 'Невалиден имейл адрес.'});
-				else if(error.code === 'auth/weak-password') this.setState({loginError: 'Слаба парола.'});
-				else this.setState({loginError: error.message});
-			});
-		}		
-	},		
-	googleLogin: function() {
-		// Instantiate the Google authentication provider
-		var provider= new firebase.auth.GoogleAuthProvider();
-		// Handle the authentication request using the Popup method
-		firebase.auth().signInWithPopup(provider).catch((error) => {
-			this.setState({loginError: error.message});
-		});						
-	},
-	logout: function() {
-		firebase.auth().signOut().catch(function(error) {
-			this.setState({loginError: error.message});
-		});	
 	},	
-	//</login>
+	logout: function() {
+		firebase.auth().signOut()
+		.then(() => {
+			this.setState({
+				selectedCampaign: null,
+				selectedInitiative: null,
+				shouldDisplayFirebaseUiLogin: true
+			});
+		})
+		.catch((error) => {
+			this.setState({loginError: error.message});
+		});
+	},	
+	//</auth>
 	
 	getInitiativeAmount: function(initiative, currency) {
 		var dict = initiative && initiative.amount[currency];
@@ -171,12 +181,14 @@ var App = React.createClass({
 				selectedCampaign: campaign,
 				selectedInitiative: null
 			});
-
-			//initiatives
-			var firInitiativesRef = firebase.database().ref(`initiatives/${campaign}`);
-			if (this.state.initiatives)
-				this.unbind('initiatives');
-			this.bindAsArray(firInitiativesRef, 'initiatives');
+			
+			if(campaign) {
+				//initiatives
+				var firInitiativesRef = firebase.database().ref(`initiatives/${campaign}`);
+				if (this.state.initiatives)
+					this.unbind('initiatives');
+				this.bindAsArray(firInitiativesRef, 'initiatives');
+			}
 		}	
 	},
 	handleSelectInitiative: function(initiative) {
@@ -239,17 +251,10 @@ var App = React.createClass({
 			</div>
 			{!user &&
 				<div className='login-main'>
-					<div style={{flex:'auto'}}>
-						Имайл адрес: <br/><input value={this.state.email} onChange={(e) => this.handleChange(e, 'email')}/><br/>
-						Парола: <br/><input type='password' value={this.state.password} onChange={(e) => this.handleChange(e, 'password')}/><br/>
-						<button onClick={this.emailRegister}>{'Регистрация'}</button>
-						<button onClick={this.emailLogin}>{'Вход'}</button><br/>
-						<div style={{color: 'red'}}>{this.state.loginError}</div>
+					<div className='login-anonymous'>
+						<button style={{width:'100%', height: '100%'}} onClick={this.anonymousLogin}>{'Анонимен Вход'}</button>
 					</div>
-					<div className='center'><hr style={{width:'1px', height:'100%'}}/></div>
-					<button onClick={this.anonymousLogin}>{'Анонимен Вход'}</button>			
-					<button onClick={this.googleLogin}>{'Вход с Google'}</button>
-					<button onClick={this.facebookLogin}>{'Вход с Facebook'}</button>							
+					<div className='login-firUi' id='firebase-ui-container'/>
 				</div>
 			}
 			{user &&
