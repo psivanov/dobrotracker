@@ -6,6 +6,10 @@ button {
 	background-color: #059dc1;
 	color: white;
 }
+button[disabled], button[disabled]:hover {
+	background-color: #059dc1;	
+	color: #dddddd;
+}
 button:hover {
 	background-color: #e97700;
 	color: white;

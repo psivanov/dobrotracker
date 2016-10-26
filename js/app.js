@@ -21,7 +21,10 @@ var CampaignList = React.createClass({
 							<div className={`${rootClass}-title`}>{ item.title } </div>
 							<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
 						</div>
-						<div className={`${rootClass}-description`}><pre>{ item.description }</pre></div>
+						<div className={`${rootClass}-description`}>
+							{`(Създаденa на ${new Date(item.date).toLocaleDateString()} от ${item.creator})`}
+							<pre>{ item.description }</pre>
+						</div>
 					</div>
 					{ item.owners[this.props.user.uid] && item.amount === 0 && <div className={`${rootClass}-delete`} onClick={() => this.props.deleteCampaign(item['.key'])}/> }
 				</div>
@@ -50,7 +53,10 @@ var InitiativeList = React.createClass({
 							<div className={`${rootClass}-title`}>{ item.title } </div>
 							<div className={`${rootClass}-amount`}>{ formatCurrency(item.amount.converted, 'BGN') + ' / ' + formatCurrency(item.targetAmount, 'BGN') }</div>
 						</div>
-						<pre className={`${rootClass}-description`}>{ item.description }</pre>
+						<div className={`${rootClass}-description`}>
+							{`(Създаденa на ${new Date(item.date).toLocaleDateString()})`}
+							<pre>{ item.description }</pre>
+						</div>
 					</div>
 					{ this.props.canDelete && <div className={`${rootClass}-delete`} onClick={() => this.props.deleteInitiative(item['.key'])}/> }
 				</div>
@@ -171,6 +177,10 @@ var App = React.createClass({
 		if(!initiative) initiative = this.state.selectedInitiative;
 		return this.state.initiatives && this.state.initiatives.find(x => x['.key'] === initiative);
 	},
+	getUserDisplay: function() {
+		var user = this.state.user;
+		return user.displayName ? user.displayName : user.email;
+	},
 	
 	handleChange: function(e, name) {
 		this.setState({ [name]: e.target.value });
@@ -214,6 +224,7 @@ var App = React.createClass({
 	handleNewCampaign: function() {
 		var newRef = firebase.database().ref('campaigns').push({
 			amount: 0,
+			creator: this.getUserDisplay(),
 			date: (new Date).toISOString(),
 			description: '--Подробно описание на кампанията--',
 			owners: { [this.state.user.uid]: true },
@@ -325,7 +336,7 @@ var App = React.createClass({
 				</div>
 				<div className='header-right'>
 					{user && <div>
-						<a style={{margin: '8px'}}>{user.displayName ? user.displayName : user.email}</a><button onClick={this.logout}>{'Изход'}</button>
+						<a style={{margin: '8px'}}>{this.getUserDisplay()}</a><button onClick={this.logout}>{'Изход'}</button>
 					</div>}						
 				</div>			
 			</div>
@@ -342,7 +353,7 @@ var App = React.createClass({
 					<div className='top'>
 						<div className='left'>
 							<h2>Кампании
-								<button style={{float:'right'}} onClick={this.handleNewCampaign}>Нова Кампания</button>
+								{!user.isAnonymous && <button style={{float:'right'}} onClick={this.handleNewCampaign}>Нова Кампания</button>}
 							</h2>
 							{<CampaignList
 								deleteCampaign={this.deleteCampaign}
@@ -355,7 +366,7 @@ var App = React.createClass({
 						<div className='center'><hr style={{width:'1px', height:'100%'}}/></div>
 						<div className='right'>
 							<h2>Инициативи 
-								{owner && <button style={{float:'right'}} onClick={() => this.handleNewInitiative(campaign['.key'])}>Нова Инициатива</button>}
+								{!user.isAnonymous && owner && <button style={{float:'right'}} onClick={() => this.handleNewInitiative(campaign['.key'])}>Нова Инициатива</button>}
 							</h2>
 							{campaign && <InitiativeList
 									canDelete={ campaign && campaign.owners[user.uid] && campaign.amount === 0 }
@@ -384,7 +395,11 @@ var App = React.createClass({
 									Необходима сума:<br/>
 									<textarea value={this.state.editTargetAmount} rows='1' onChange={(e) => this.handleChange(e, 'editTargetAmount')}/>
 								</div>}
-								<button style={{height: '21px'}} onClick={this.handleEdit}>Запази</button>							
+								<button 
+									disabled={!this.state.editTitle || !this.state.editDescription} 
+									onClick={this.handleEdit}
+									style={{height: '21px'}}
+								>Запази</button>						
 							</div>
 						}
 						{this.state.selectedInitiative && 
