@@ -4,11 +4,27 @@ function convertCurrency(amount, from, to) {
 function formatCurrency(amount, currency) {
 	return `${amount.toFixed(0)} ${currency.toUpperCase()}`;
 }
+function sendNewInitiativeAlert(subscribers, campaign, initiative_title, initiative_description, initiative_targetAmount) {
+	var subscriberKeys = Object.keys(subscribers);
+	if(subscriberKeys.length > 0) {
+		// parameters: service_id, template_id, template_parameters
+		emailjs.send('gmail', 'new_initiative_alert', {
+			campaign,
+			initiative_title,
+			initiative_description,
+			initiative_targetAmount,
+			toEmails: subscriberKeys.map((key) => subscribers[key]).join(),		
+		});
+	}
+}
 
 var CampaignList = React.createClass({
 	render: function() {
+		var rootClass = 'campaignItem';		
 		var createItem = (item, index) => {
-			var rootClass = 'campaignItem';
+			var owner = item.owners && item.owners[this.props.user.uid];
+			var subscribed = item.subscribers && item.subscribers[this.props.user.uid];
+			var canSubscribe = !owner && !this.props.user.isAnonymous;			
 			return (
 				<div className={rootClass} key = { index }>
 					<div 
@@ -26,7 +42,17 @@ var CampaignList = React.createClass({
 							<pre>{ item.description }</pre>
 						</div>
 					</div>
-					{ item.owners[this.props.user.uid] && item.amount === 0 && <div className={`${rootClass}-delete`} onClick={() => this.props.deleteCampaign(item['.key'])}/> }
+					{ owner && item.amount === 0 && <div 
+						className={`${rootClass}-delete`}
+						onClick={() => this.props.deleteCampaign(item['.key'])}
+						/> 
+					}
+					{ canSubscribe && <div 
+						className={`${rootClass}-${subscribed ? 'email' : 'noemail'}`} 
+						onClick={() => this.props.toggleSubscribe(item)} 
+						alt={`${subscribed ? 'Отпиши се от тази кампания' : 'Абонирай се за тази кампания за да получаваш имейл за нови инициативи'}`}
+						/> 
+					}
 				</div>
 			);
 		};
@@ -40,6 +66,7 @@ var InitiativeList = React.createClass({
 	render: function() {
 		var createItem = (item, index) => {
 			var rootClass = 'campaignItem'; //initiatives uses the campaign CSS classes, since the UI is the same
+			var canDelete = this.props.campaign && this.props.campaign.owners[this.props.user.uid] && !item.amount.converted;
 			return (
 				<div className={rootClass}>
 					<div 
@@ -58,7 +85,12 @@ var InitiativeList = React.createClass({
 							<pre>{ item.description }</pre>
 						</div>
 					</div>
-					{ this.props.canDelete && <div className={`${rootClass}-delete`} onClick={() => this.props.deleteInitiative(item['.key'])}/> }
+					{ canDelete && <div 
+						className={`${rootClass}-delete`}
+						onClick={() => this.props.deleteInitiative(this.props.campaign, item)}
+						alt='Изтрий тази инициатива'
+						/> 
+					}
 				</div>
 			);
 		};
@@ -155,9 +187,11 @@ var App = React.createClass({
 				this.syncSelection(null, null);
 		}
 	},	
-	deleteInitiative: function(initiative) {
+	deleteInitiative: function(campaign, initiative) {
 		if(confirm('Сигурен ли си че искаш да изтриеш тази инициатива?')) {
-			firebase.database().ref(`initiatives/${this.state.selectedCampaign}/${initiative}`).remove();
+			firebase.database().ref(`campaigns/${campaign['.key']}/targetAmount`).transaction(currentData => this.firAdd(currentData, -initiative.targetAmount));
+		
+			firebase.database().ref(`initiatives/${this.state.selectedCampaign}/${initiative['.key']}`).remove();
 			
 			if(this.state.selectedInitiative === initiative)
 				this.syncSelection(this.state.selectedCampaign, null);			
@@ -215,7 +249,14 @@ var App = React.createClass({
 				if (increment !== 0) {
 					refInitiative.child('targetAmount').transaction(currentData => this.firAdd(currentData, increment));
 					refCampaign.child('targetAmount').transaction(currentData => this.firAdd(currentData, increment));
-				}					
+				}
+
+				//send emails if the amount is updated from 0 to non-zero
+				if(!initiativeObj.targetAmount && increment) {
+					var campaignObj = this.getCampaign(campaign);
+					if (campaignObj.subscribers)
+						sendNewInitiativeAlert(campaignObj.subscribers, campaign, this.state.editTitle, this.state.editDescription, increment);
+				}
 			}
 			
 			this.syncSelection(campaign, initiative);				
@@ -228,6 +269,7 @@ var App = React.createClass({
 			date: (new Date).toISOString(),
 			description: '--Подробно описание на кампанията--',
 			owners: { [this.state.user.uid]: true },
+			subscribers: { },
 			targetAmount: 0,
 			title: '--Име на кампанията--'
 		});
@@ -323,6 +365,16 @@ var App = React.createClass({
 		});
 	},
 
+	toggleSubscribe: function(campaign) {
+		var user = this.state.user;
+		if(campaign.subscribers && campaign.subscribers[user.uid]) {
+			firebase.database().ref(`campaigns/${campaign['.key']}/subscribers/${user.uid}`).remove();
+		}
+		else {
+			firebase.database().ref(`campaigns/${campaign['.key']}/subscribers/${user.uid}`).set(user.email);
+		}
+	},
+
   render: function() {
 	var user = this.state.user;
 	var campaign = this.getCampaign();
@@ -360,6 +412,7 @@ var App = React.createClass({
 								items={ this.state.campaigns } 
 								onSelect={ this.handleSelectCampaign }
 								selected={this.state.selectedCampaign}
+								toggleSubscribe={this.toggleSubscribe}
 								user={user}
 							/>}
 						</div>
@@ -369,12 +422,13 @@ var App = React.createClass({
 								{!user.isAnonymous && owner && <button style={{float:'right'}} onClick={() => this.handleNewInitiative(campaign['.key'])}>Нова Инициатива</button>}
 							</h2>
 							{campaign && <InitiativeList
-									canDelete={ campaign && campaign.owners[user.uid] && campaign.amount === 0 }
+									campaign={ campaign }
 									deleteInitiative={this.deleteInitiative}
 									items={ this.state.initiatives } 
 									selected={this.state.selectedInitiative}
 									selectedCampaign={this.state.selectedCampaign}
 									onSelect={ this.handleSelectInitiative }
+									user={user}
 							/>}
 						</div>
 					</div>
