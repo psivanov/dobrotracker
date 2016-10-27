@@ -5,6 +5,7 @@ button {
 	font-family: Roboto;
 	background-color: #059dc1;
 	color: white;
+	cursor: pointer;
 }
 button[disabled], button[disabled]:hover {
 	background-color: #059dc1;	
@@ -103,6 +104,7 @@ div[alt]:hover:after {
 }
 .campaignItem-main {
 	border: 1px solid black;
+	cursor: pointer;
 	flex: 1;
 	margin-bottom: 3px;
 	padding: 2px;
@@ -136,6 +138,7 @@ div[alt]:hover:after {
 .campaignItem-delete {
 	background: #ee0000;
 	color: white;
+	cursor: pointer;
 	font-size: 27px;
 	height: 27px;
 	margin-left:4px;
@@ -150,6 +153,7 @@ div[alt]:hover:after {
 .campaignItem-email {
 	background-image: url('../img/email.png');
 	background-size: 27px;
+	cursor: pointer;
 	height: 27px;		
 	margin-left:4px;
 	width: 27px;
@@ -157,6 +161,7 @@ div[alt]:hover:after {
 .campaignItem-noemail {
 	background-image: url('../img/noemail.png');
 	background-size: 27px;
+	cursor: pointer;
 	height: 27px;	
 	margin-left:4px;
 	width: 27px;

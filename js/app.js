@@ -88,7 +88,6 @@ var InitiativeList = React.createClass({
 					{ canDelete && <div 
 						className={`${rootClass}-delete`}
 						onClick={() => this.props.deleteInitiative(this.props.campaign, item)}
-						alt='Изтрий тази инициатива'
 						/> 
 					}
 				</div>
@@ -458,7 +457,7 @@ var App = React.createClass({
 						}
 						{this.state.selectedInitiative && 
 							<div className='contribution'>
-								<b>Моя принос:</b>
+								<b>Моят принос:</b>
 								<div>BGN: <input value={this.state.contribution.BGN} onChange={(e) => this.handleContributionChange(e, 'BGN')}/></div>
 								<div>EUR: <input value={this.state.contribution.EUR} onChange={(e) => this.handleContributionChange(e, 'EUR')}/></div>
 								<div>USD: <input value={this.state.contribution.USD} onChange={(e) => this.handleContributionChange(e, 'USD')}/></div>
