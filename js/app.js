@@ -255,7 +255,7 @@ var App = React.createClass({
 				if(!initiativeObj.targetAmount && increment) {
 					var campaignObj = this.getCampaign(campaign);
 					if (campaignObj.subscribers)
-						sendNewInitiativeAlert(campaignObj.subscribers, campaign, this.state.editTitle, this.state.editDescription, increment);
+						sendNewInitiativeAlert(campaignObj.subscribers, campaignObj.title, this.state.editTitle, this.state.editDescription, increment);
 				}
 			}
 			
